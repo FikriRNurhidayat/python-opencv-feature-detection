@@ -18,7 +18,18 @@ class Image:
     # Using the image viewer
     # But, fuck it, I don't want to use this.
     # Since wayland will fuck me up
-    def show(self, waitKey = 0):
+    def show(self, waitKey = 0, withText = None):
+        if withText is not None: 
+            position = ((int) (self.fileBuffer.shape[1]/2 - 268/2), (int) (self.fileBuffer.shape[0]/2 - 36/2))
+            cv2.putText(
+                    self.fileBuffer,
+                    withText,
+                    position,
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1,
+                    (255, 255, 255, 255),
+                    3)
+
         cv2.imshow(self.name or 'OpenCV Test', self.fileBuffer)
         return cv2.waitKey(waitKey)
 
@@ -66,7 +77,7 @@ class Image:
     # which has similar points with source image
     # which being passed
     @classmethod
-    def find(cls, image, treshold = 20):
+    def find(cls, image, treshold = 50):
         try:
             score = []
             for sourceImage in cls.sourceImages:
@@ -75,6 +86,7 @@ class Image:
             # Find the best score of matchs
             # And return the index of that image
             # On the sourceImages array
+            print(score)
             maximumScore = max(score)
             matchingImageIndex = score.index(maximumScore) if maximumScore > treshold else -1
             return cls.classifications[matchingImageIndex] if matchingImageIndex > -1 else None
@@ -91,7 +103,7 @@ class Image:
         return self
 
     @classmethod
-    def config(cls, useColor = True, nfeatures = 1500, path = 'dictionaries'):
+    def config(cls, useColor = True, nfeatures = 3000, path = 'dictionaries'):
         cls.orb = cv2.ORB_create(nfeatures = nfeatures)
         cls.bruteForce = cv2.BFMatcher()
         cls.sourceFiles = os.listdir(path)

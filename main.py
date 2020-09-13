@@ -1,5 +1,7 @@
 import cv2
 import sys
+import threading
+import lib.event
 from lib.image import Image
 
 # Parse process arguments
@@ -10,45 +12,43 @@ for argument in sys.argv:
     if argument == 'disable-window': useWindow = False 
 
 # Run configuration
-Image.config(useColor = False)
+Image.config(useColor = True)
 WINDOW_NAME = 'OpenCV Test'
-INTERVAL = 60
+INTERVAL = 15
 
 # Window Setup
 cv2.startWindowThread()
 video = cv2.VideoCapture(0)
 frameNumber = 1
-lastMatch = None
 
 while True:
-    frameNumber += 1
+    global sourceFrame
+    global match
 
+    frameNumber += 1
     _, sourceFrame = video.read()
+
     frame = Image()
     frame.name = WINDOW_NAME
     frame.fileBuffer = sourceFrame
 
+    thread = None
     # Run query every INTERVAL value frame, to save some perfomance :D
     if frameNumber % INTERVAL == 0:
-        # Convert frame into gray scale
-        # To improve perfomance
-        grayFrame = cv2.cvtColor(sourceFrame, cv2.COLOR_BGR2GRAY)
-        grayImage = Image.create('Frame', fileBuffer = grayFrame, usePath = False, useColor = False)
-
-        # Query Image in the dictionaries
-        # If the result is None, then we don't mutate
-        # lastMatch, somehow it is useful someday.
-        result = Image.find(grayImage)
-        if (result is not None) & (lastMatch != result):
-            lastMatch = result
-            print(lastMatch)
+        totalThread = threading.active_count()
+        if totalThread == 1:
+            thread = threading.Thread(target = lib.event.query, args = (sourceFrame,))
+            thread.start()
 
     # Initialize Key
     key = None
 
     # Check if the process wants to create window on the Display Server
     if useWindow:
-        key = frame.show(waitKey=1)
+        # I don't know how to pass argument when calling  a function dynamically
+        # IN PYTHON, OKAY! But, let's just do the duck typing
+        if lib.event.match is not None: key = frame.show(waitKey = 1, withText = lib.event.match)
+        else: key = frame.show(waitKey = 1)
     else:
         key = cv2.waitKey(1)
 
